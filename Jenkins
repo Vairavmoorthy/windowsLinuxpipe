@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+    
+    environment {
+        SSH_KEY = credentials('YourSSHKeyCredentialId')
+        PASSPHRASE = 'your_passphrase_here'
+        REMOTE_SERVER = 'your_linux_server_ip'
+        REMOTE_USER = 'your_linux_username'
+        REMOTE_DIR = '/path/to/destination/directory'
+        LOCAL_SOURCE_DIR = 'C:\\path\\to\\your\\local\\code\\directory'
+        BACKUP_DIR = '/path/to/backup/directory'
+    }
+    
+    stages {
+        stage('Backup Old Code') {
+            steps {
+                script {
+                    sshagent(['YourSSHKeyCredentialId']) {
+                        sh """
+                            echo "$PASSPHRASE" | ssh-add $SSH_KEY
+                            scp -o StrictHostKeyChecking=no -i $SSH_KEY -r $REMOTE_USER@$REMOTE_SERVER:$REMOTE_DIR $BACKUP_DIR
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy New Code') {
+            steps {
+                script {
+                    sshagent(['YourSSHKeyCredentialId']) {
+                        sh """
+                            echo "$PASSPHRASE" | ssh-add $SSH_KEY
+                            scp -o StrictHostKeyChecking=no -i $SSH_KEY -r $LOCAL_SOURCE_DIR $REMOTE_USER@$REMOTE_SERVER:$REMOTE_DIR
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
